@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2025-05-31
 
 ### Added ✨
+- **Visual Notifications**: Added cross-platform desktop notification support 📱
+  - Linux: `notify-send` (works with notify-osd, dunst, mako, etc.)
+  - macOS: `osascript` display notification
+  - Windows: PowerShell MessageBox
+- **Enhanced Tool Parameters**: Added `show_visual` and `title` parameters to `play_notification`
 - **Linux Support**: Added mpg123 support for Linux platforms alongside existing Windows and macOS support 🐧
 - **Random Sound Option**: Set `MCP_NOTIFICATION_SOUND=random` to randomly play one of the 5 bundled sounds 🎲
 - **Bundled Sound Assets**: MP3 files now included in npm package for out-of-the-box functionality

@@ -22,9 +22,12 @@ A Model Context Protocol server that allows AI agents to play notification sound
 ## ✨ Features
 
 ### 🔧 Tools
-- `play_notification` - Play a notification sound to indicate task completion
-  - Takes an optional `message` parameter to display with the notification
-  - Supports cross-platform sound playback (Windows, macOS, and Linux)
+- `play_notification` - Play a notification sound and optionally show visual notifications
+  - `message` (optional): Message to display with the notification
+  - `show_visual` (optional): Whether to show a desktop notification (default: false)
+  - `title` (optional): Title for the visual notification (default: "Task Complete")
+  - Supports cross-platform audio playback (Windows, macOS, and Linux)
+  - Supports cross-platform visual notifications (notify-send, osascript, PowerShell)
   - **Works with bundled sounds** - no manual downloads required!
 
 ### 🎵 Built-in Sound Library

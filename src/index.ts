@@ -51,6 +51,30 @@ function getSoundFile(): string {
   return path.join(__dirname, '..', DEFAULT_SOUND_FILE);
 }
 
+// Function to show visual notification
+async function showVisualNotification(title: string, message: string): Promise<void> {
+  let command: string;
+  
+  switch (process.platform) {
+    case 'linux':
+      // Use notify-send for Linux (works with notify-osd, dunst, etc.)
+      command = `notify-send "${title}" "${message}"`;
+      break;
+    case 'darwin':
+      // Use osascript for macOS
+      command = `osascript -e 'display notification "${message}" with title "${title}"'`;
+      break;
+    case 'win32':
+      // Use PowerShell for Windows toast notifications
+      command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('${message}', '${title}')"`;
+      break;
+    default:
+      throw new Error(`Visual notifications not supported on platform: ${process.platform}`);
+  }
+  
+  await execAsync(command);
+}
+
 /**
  * Create an MCP server with tool capability for playing notifications
  */
@@ -82,6 +106,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             message: {
               type: "string",
               description: "Optional message to display with notification"
+            },
+            show_visual: {
+              type: "boolean",
+              description: "Whether to show a visual desktop notification (default: false)"
+            },
+            title: {
+              type: "string",
+              description: "Title for the visual notification (default: 'Task Complete')"
+            },
+            audio_only: {
+              type: "boolean",
+              description: "Skip audio and only show visual notification (default: false)"
             }
           }
         }
@@ -100,33 +136,52 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   try {
-    // Get the sound file to play (potentially random)
-    const SOUND_FILE_TO_PLAY = getSoundFile();
+    const args = request.params.arguments as any || {};
+    const message: string = args.message || "";
+    const showVisual: boolean = args.show_visual || false;
+    const title: string = args.title || "Task Complete";
+    const audioOnly: boolean = args.audio_only || false;
     
-    // Play sound using platform-specific command
-    let command: string;
-    switch (process.platform) {
-      case 'win32':
-        command = `start "" "${SOUND_FILE_TO_PLAY}"`;
-        break;
-      case 'darwin':
-        command = `afplay "${SOUND_FILE_TO_PLAY}"`;
-        break;
-      case 'linux':
-        command = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
-        break;
-      default:
-        throw new Error(`Unsupported platform: ${process.platform}`);
+    // Execute audio notification (unless audio_only is true)
+    if (!audioOnly) {
+      const SOUND_FILE_TO_PLAY = getSoundFile();
+      let audioCommand: string;
+      switch (process.platform) {
+        case 'win32':
+          audioCommand = `start "" "${SOUND_FILE_TO_PLAY}"`;
+          break;
+        case 'darwin':
+          audioCommand = `afplay "${SOUND_FILE_TO_PLAY}"`;
+          break;
+        case 'linux':
+          audioCommand = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
+          break;
+        default:
+          throw new Error(`Unsupported platform: ${process.platform}`);
+      }
+
+      await execAsync(audioCommand);
+    }
+    
+    // Execute visual notification if requested
+    if (showVisual) {
+      const notificationMessage = message || "Task completed successfully!";
+      await showVisualNotification(title, notificationMessage);
     }
 
-    await execAsync(command);
+    // Prepare response message
+    let responseText = audioOnly ? "Visual notification shown successfully" : "Notification played successfully";
+    if (message) {
+      responseText = audioOnly ? `Visual notification: ${message}` : `Notification played: ${message}`;
+    }
+    if (showVisual && !audioOnly) {
+      responseText += " (with visual notification)";
+    }
 
     return {
       content: [{
         type: "text",
-        text: request.params.arguments?.message
-          ? `Notification played: ${request.params.arguments.message}`
-          : "Notification played successfully"
+        text: responseText
       }]
     };
   } catch (error) {
