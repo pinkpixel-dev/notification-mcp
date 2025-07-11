@@ -51,14 +51,49 @@ function getSoundFile(): string {
   return path.join(__dirname, '..', DEFAULT_SOUND_FILE);
 }
 
+// Function to detect if running in Qubes OS
+function isQubesOS(): boolean {
+  try {
+    // Check for Qubes-specific indicators
+    const fs = require('fs');
+    return fs.existsSync('/proc/xen') && 
+           fs.existsSync('/usr/bin/qrexec-client-vm') &&
+           fs.existsSync('/etc/qubes-rpc/');
+  } catch {
+    return false;
+  }
+}
+
 // Function to show visual notification
 async function showVisualNotification(title: string, message: string): Promise<void> {
   let command: string;
   
   switch (process.platform) {
     case 'linux':
-      // Use notify-send for Linux (works with notify-osd, dunst, etc.)
-      command = `notify-send "${title}" "${message}"`;
+      if (isQubesOS()) {
+        // Qubes OS: Try multiple notification methods
+        // Method 1: Try qrexec notification (may be restricted)
+        try {
+          command = `echo "${title}|${message}" | qrexec-client-vm dom0 qubes.NotifyAll`;
+          await execAsync(command);
+          return;
+        } catch {
+          // Method 2: Fallback to local notify-send within the VM
+          try {
+            command = `notify-send "${title}" "${message}"`;
+            await execAsync(command);
+            return;
+          } catch {
+            // Method 3: Write to a log file that could be monitored
+            command = `echo "$(date): [${title}] ${message}" >> /tmp/mcp-notifications.log`;
+            await execAsync(command);
+            return;
+          }
+        }
+      } else {
+        // Regular Linux: Use notify-send
+        command = `notify-send "${title}" "${message}"`;
+      }
       break;
     case 'darwin':
       // Use osascript for macOS
@@ -154,13 +189,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           audioCommand = `afplay "${SOUND_FILE_TO_PLAY}"`;
           break;
         case 'linux':
-          audioCommand = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
+          if (isQubesOS()) {
+            // Qubes OS: Try multiple audio methods
+            try {
+              // Method 1: Try paplay (PulseAudio) which often works better in Qubes
+              audioCommand = `paplay "${SOUND_FILE_TO_PLAY}"`;
+              await execAsync(audioCommand);
+            } catch {
+              try {
+                // Method 2: Fallback to mpg123
+                audioCommand = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
+                await execAsync(audioCommand);
+              } catch {
+                // Method 3: Try aplay with conversion (last resort)
+                audioCommand = `ffplay -nodisp -autoexit "${SOUND_FILE_TO_PLAY}" 2>/dev/null`;
+                await execAsync(audioCommand);
+              }
+            }
+          } else {
+            // Regular Linux
+            audioCommand = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
+            await execAsync(audioCommand);
+          }
           break;
         default:
           throw new Error(`Unsupported platform: ${process.platform}`);
       }
-
-      await execAsync(audioCommand);
     }
     
     // Execute visual notification if requested
