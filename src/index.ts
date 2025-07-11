@@ -113,7 +113,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         command = `afplay "${SOUND_FILE_TO_PLAY}"`;
         break;
       case 'linux':
-        command = `aplay "${SOUND_FILE_TO_PLAY}"`;
+        command = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
         break;
       default:
         throw new Error(`Unsupported platform: ${process.platform}`);

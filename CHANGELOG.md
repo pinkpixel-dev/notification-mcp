@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2025-05-31
 
 ### Added ✨
-- **Linux Support**: Added aplay support for Linux platforms alongside existing Windows and macOS support 🐧
+- **Linux Support**: Added mpg123 support for Linux platforms alongside existing Windows and macOS support 🐧
 - **Random Sound Option**: Set `MCP_NOTIFICATION_SOUND=random` to randomly play one of the 5 bundled sounds 🎲
 - **Bundled Sound Assets**: MP3 files now included in npm package for out-of-the-box functionality
 - **NPX Compatibility**: Full support for `npx @pinkpixel/notification-mcp` with bundled sounds
