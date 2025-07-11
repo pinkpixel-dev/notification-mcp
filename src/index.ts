@@ -104,9 +104,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const SOUND_FILE_TO_PLAY = getSoundFile();
     
     // Play sound using platform-specific command
-    const command = process.platform === 'win32'
-      ? `start "" "${SOUND_FILE_TO_PLAY}"`
-      : `afplay "${SOUND_FILE_TO_PLAY}"`;
+    let command: string;
+    switch (process.platform) {
+      case 'win32':
+        command = `start "" "${SOUND_FILE_TO_PLAY}"`;
+        break;
+      case 'darwin':
+        command = `afplay "${SOUND_FILE_TO_PLAY}"`;
+        break;
+      case 'linux':
+        command = `aplay "${SOUND_FILE_TO_PLAY}"`;
+        break;
+      default:
+        throw new Error(`Unsupported platform: ${process.platform}`);
+    }
 
     await execAsync(command);
 
