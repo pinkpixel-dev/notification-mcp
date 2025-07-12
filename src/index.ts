@@ -203,48 +203,73 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     
     // Execute audio notification (unless audio_only is true)
     if (!audioOnly) {
-      const SOUND_FILE_TO_PLAY = getSoundFile();
-      let audioCommand: string;
-      switch (process.platform) {
-        case 'win32':
-          audioCommand = `start "" "${SOUND_FILE_TO_PLAY}"`;
-          break;
-        case 'darwin':
-          audioCommand = `afplay "${SOUND_FILE_TO_PLAY}"`;
-          break;
-        case 'linux':
-          if (isQubesOS()) {
-            // Qubes OS: Try multiple audio methods
-            try {
-              // Method 1: Try paplay (PulseAudio) which often works better in Qubes
-              audioCommand = `paplay "${SOUND_FILE_TO_PLAY}"`;
-              await execAsync(audioCommand);
-            } catch {
-              try {
-                // Method 2: Fallback to mpg123
-                audioCommand = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
-                await execAsync(audioCommand);
-              } catch {
-                // Method 3: Try aplay with conversion (last resort)
-                audioCommand = `ffplay -nodisp -autoexit "${SOUND_FILE_TO_PLAY}" 2>/dev/null`;
-                await execAsync(audioCommand);
+      try {
+        const SOUND_FILE_TO_PLAY = getSoundFile();
+        
+        switch (process.platform) {
+          case 'win32':
+            await execAsync(`start "" "${SOUND_FILE_TO_PLAY}"`);
+            break;
+          case 'darwin':
+            await execAsync(`afplay "${SOUND_FILE_TO_PLAY}"`);
+            break;
+          case 'linux':
+            if (isQubesOS()) {
+              // Qubes OS: Try multiple audio methods with proper error handling
+              const audioMethods = [
+                // Method 1: Try paplay (PulseAudio) which often works better in Qubes
+                () => execAsync(`paplay "${SOUND_FILE_TO_PLAY}"`),
+                // Method 2: Try mpg123
+                () => execAsync(`mpg123 -q "${SOUND_FILE_TO_PLAY}"`),
+                // Method 3: Try ffplay
+                () => execAsync(`ffplay -nodisp -autoexit "${SOUND_FILE_TO_PLAY}" 2>/dev/null`),
+                // Method 4: Try aplay (may not work with MP3 but worth trying)
+                () => execAsync(`aplay "${SOUND_FILE_TO_PLAY}" 2>/dev/null`)
+              ];
+              
+              let audioSuccess = false;
+              for (const method of audioMethods) {
+                try {
+                  await method();
+                  audioSuccess = true;
+                  break; // Success, exit early
+                } catch (error) {
+                  // Continue to next method
+                  continue;
+                }
               }
+              
+              if (!audioSuccess) {
+                console.log(`Audio playback failed in Qubes VM, but continuing...`);
+                // Don't throw error for audio failure in Qubes - it's often expected
+              }
+            } else {
+              // Regular Linux
+              await execAsync(`mpg123 -q "${SOUND_FILE_TO_PLAY}"`);
             }
-          } else {
-            // Regular Linux
-            audioCommand = `mpg123 -q "${SOUND_FILE_TO_PLAY}"`;
-            await execAsync(audioCommand);
-          }
-          break;
-        default:
-          throw new Error(`Unsupported platform: ${process.platform}`);
+            break;
+          default:
+            throw new Error(`Unsupported platform: ${process.platform}`);
+        }
+      } catch (error) {
+        // Log audio failure but don't fail the entire operation in Qubes
+        if (isQubesOS()) {
+          console.log(`Audio notification failed in Qubes: ${error instanceof Error ? error.message : String(error)}`);
+        } else {
+          throw error; // Re-throw for non-Qubes systems
+        }
       }
     }
     
     // Execute visual notification if requested
     if (showVisual) {
       const notificationMessage = message || "Task completed successfully!";
-      await showVisualNotification(title, notificationMessage, urgency, timeout, icon);
+      try {
+        await showVisualNotification(title, notificationMessage, urgency, timeout, icon);
+      } catch (error) {
+        // Log visual notification failure but don't fail the entire operation
+        console.log(`Visual notification failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
     // Prepare response message
@@ -253,7 +278,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       responseText = audioOnly ? `Visual notification: ${message}` : `Notification played: ${message}`;
     }
     if (showVisual && !audioOnly) {
-      responseText += " (with visual notification)";
+      responseText += ` (with ${urgency} visual notification)`;
+    }
+    
+    // Add Qubes-specific messaging
+    if (isQubesOS()) {
+      responseText += " (Qubes OS detected - using fallback methods)";
     }
 
     return {
