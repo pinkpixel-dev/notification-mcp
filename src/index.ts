@@ -65,34 +65,42 @@ function isQubesOS(): boolean {
 }
 
 // Function to show visual notification
-async function showVisualNotification(title: string, message: string): Promise<void> {
+async function showVisualNotification(title: string, message: string, urgency: string = "normal", timeout: number = 5000, icon: string = "dialog-information"): Promise<void> {
   let command: string;
   
   switch (process.platform) {
     case 'linux':
       if (isQubesOS()) {
-        // Qubes OS: Try multiple notification methods
-        // Method 1: Try qrexec notification (may be restricted)
-        try {
-          command = `echo "${title}|${message}" | qrexec-client-vm dom0 qubes.NotifyAll`;
-          await execAsync(command);
-          return;
-        } catch {
-          // Method 2: Fallback to local notify-send within the VM
+        // Qubes OS: Try multiple notification methods with styling
+        const methods = [
+          // Method 1: Try qrexec notification (may be restricted)
+          () => execAsync(`echo "${title}|${message}" | qrexec-client-vm dom0 qubes.NotifyAll`),
+          // Method 2: Fallback to local notify-send with full styling
+          () => execAsync(`notify-send -u ${urgency} -t ${timeout} -i ${icon} "${title}" "${message}"`),
+          // Method 3: Try notify-send with basic styling (fallback if icon fails)
+          () => execAsync(`notify-send -u ${urgency} -t ${timeout} "${title}" "${message}"`),
+          // Method 4: Basic notify-send as fallback
+          () => execAsync(`notify-send "${title}" "${message}"`),
+          // Method 5: Write to a styled log file that could be monitored
+          () => execAsync(`echo "$(date) [${urgency.toUpperCase()}] ${title}: ${message}" >> /tmp/mcp-notifications.log`),
+          // Method 6: Console output as last resort
+          () => Promise.resolve(console.log(`NOTIFICATION [${urgency.toUpperCase()}]: [${title}] ${message}`))
+        ];
+        
+        for (const method of methods) {
           try {
-            command = `notify-send "${title}" "${message}"`;
-            await execAsync(command);
-            return;
-          } catch {
-            // Method 3: Write to a log file that could be monitored
-            command = `echo "$(date): [${title}] ${message}" >> /tmp/mcp-notifications.log`;
-            await execAsync(command);
-            return;
+            await method();
+            return; // Success, exit early
+          } catch (error) {
+            // Continue to next method
+            continue;
           }
         }
+        // If all methods fail, throw the last error
+        throw new Error(`All Qubes notification methods failed for: [${title}] ${message}`);
       } else {
-        // Regular Linux: Use notify-send
-        command = `notify-send "${title}" "${message}"`;
+        // Regular Linux: Use notify-send with full styling
+        command = `notify-send -u ${urgency} -t ${timeout} -i ${icon} "${title}" "${message}"`;
       }
       break;
     case 'darwin':
@@ -153,6 +161,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             audio_only: {
               type: "boolean",
               description: "Skip audio and only show visual notification (default: false)"
+            },
+            urgency: {
+              type: "string",
+              description: "Notification urgency level: low, normal, critical (default: normal)",
+              enum: ["low", "normal", "critical"]
+            },
+            timeout: {
+              type: "number",
+              description: "Notification timeout in milliseconds (default: 5000)"
+            },
+            icon: {
+              type: "string",
+              description: "Icon name or path for the notification (default: dialog-information)"
             }
           }
         }
@@ -176,6 +197,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const showVisual: boolean = args.show_visual || false;
     const title: string = args.title || "Task Complete";
     const audioOnly: boolean = args.audio_only || false;
+    const urgency: string = args.urgency || "normal";
+    const timeout: number = args.timeout || 5000;
+    const icon: string = args.icon || "dialog-information";
     
     // Execute audio notification (unless audio_only is true)
     if (!audioOnly) {
@@ -220,7 +244,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Execute visual notification if requested
     if (showVisual) {
       const notificationMessage = message || "Task completed successfully!";
-      await showVisualNotification(title, notificationMessage);
+      await showVisualNotification(title, notificationMessage, urgency, timeout, icon);
     }
 
     // Prepare response message

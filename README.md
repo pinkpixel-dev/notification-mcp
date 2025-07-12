@@ -26,8 +26,13 @@ A Model Context Protocol server that allows AI agents to play notification sound
   - `message` (optional): Message to display with the notification
   - `show_visual` (optional): Whether to show a desktop notification (default: false)
   - `title` (optional): Title for the visual notification (default: "Task Complete")
+  - `audio_only` (optional): Skip audio and only show visual notification (default: false)
+  - `urgency` (optional): Notification urgency level - low, normal, critical (default: normal)
+  - `timeout` (optional): Notification timeout in milliseconds (default: 5000)
+  - `icon` (optional): Icon name or path for the notification (default: dialog-information)
   - Supports cross-platform audio playback (Windows, macOS, and Linux)
-  - Supports cross-platform visual notifications (notify-send, osascript, PowerShell)
+  - Supports cross-platform visual notifications with styling (notify-send, osascript, PowerShell)
+  - **Enhanced Qubes OS support** with fallback mechanisms
   - **Works with bundled sounds** - no manual downloads required!
 
 ### 🎵 Built-in Sound Library
