@@ -255,7 +255,7 @@ await client.request({
 - **MCP Inspector:** Interactive debugging interface
 - **Stdio Transport:** Standard protocol debugging
 - **Error Logging:** Comprehensive error reporting
-- **Platform Detection:** Cross-platform compatibility checks
+- **Platform Detection:** Cross-platform compatibility checks (Windows, macOS, Linux)
 - **Asset Resolution:** Debug bundled file paths
 
 ---
@@ -263,7 +263,6 @@ await client.request({
 ## 🛠️ Extensibility & Future Enhancements
 
 ### **Potential Improvements**
-- **Linux support** (pulseaudio/aplay)
 - **Volume control** configuration
 - **Multiple notification types**
 - **Integration with system notifications**

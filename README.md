@@ -11,7 +11,7 @@
 
   [![NPM Downloads](https://img.shields.io/npm/dm/@pinkpixel/notification-mcp?style=flat-square&color=ff69b4)](https://www.npmjs.com/package/@pinkpixel/notification-mcp) [![GitHub Stars](https://img.shields.io/github/stars/pinkpixel-dev/notification-mcp?style=flat-square&color=ff69b4)](https://github.com/pinkpixel-dev/notification-mcp/stargazers) [![GitHub Issues](https://img.shields.io/github/issues/pinkpixel-dev/notification-mcp?style=flat-square&color=ff69b4)](https://github.com/pinkpixel-dev/notification-mcp/issues) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](http://makeapullrequest.com)
 
-  [![Platform Support](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-lightgrey?style=flat-square)](https://github.com/pinkpixel-dev/notification-mcp) [![Built with Love](https://img.shields.io/badge/Built%20with-❤️-ff1744.svg?style=flat-square)](https://pinkpixel.dev) [![Pink Pixel](https://img.shields.io/badge/Pink-Pixel-ff69b4?style=flat-square&logo=sparkles)](https://pinkpixel.dev)
+  [![Platform Support](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/pinkpixel-dev/notification-mcp) [![Built with Love](https://img.shields.io/badge/Built%20with-❤️-ff1744.svg?style=flat-square)](https://pinkpixel.dev) [![Pink Pixel](https://img.shields.io/badge/Pink-Pixel-ff69b4?style=flat-square&logo=sparkles)](https://pinkpixel.dev)
 
 </div>
 
@@ -22,9 +22,17 @@ A Model Context Protocol server that allows AI agents to play notification sound
 ## ✨ Features
 
 ### 🔧 Tools
-- `play_notification` - Play a notification sound to indicate task completion
-  - Takes an optional `message` parameter to display with the notification
-  - Supports cross-platform sound playback (Windows and macOS)
+- `play_notification` - Play a notification sound and optionally show visual notifications
+  - `message` (optional): Message to display with the notification
+  - `show_visual` (optional): Whether to show a desktop notification (default: false)
+  - `title` (optional): Title for the visual notification (default: "Task Complete")
+  - `audio_only` (optional): Skip audio and only show visual notification (default: false)
+  - `urgency` (optional): Notification urgency level - low, normal, critical (default: normal)
+  - `timeout` (optional): Notification timeout in milliseconds (default: 5000)
+  - `icon` (optional): Icon name or path for the notification (default: dialog-information)
+  - Supports cross-platform audio playback (Windows, macOS, and Linux)
+  - Supports cross-platform visual notifications with styling (notify-send, osascript, PowerShell)
+  - **Enhanced Qubes OS support** with fallback mechanisms
   - **Works with bundled sounds** - no manual downloads required!
 
 ### 🎵 Built-in Sound Library

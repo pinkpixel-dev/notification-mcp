@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2025-05-31
 
 ### Added ✨
+- **Visual Notifications**: Added cross-platform desktop notification support 📱
+  - Linux: `notify-send` (works with notify-osd, dunst, mako, etc.)
+  - macOS: `osascript` display notification
+  - Windows: PowerShell MessageBox
+- **Enhanced Tool Parameters**: Added comprehensive styling options to `play_notification`
+  - `urgency`: low, normal, critical notification levels
+  - `timeout`: Custom notification duration in milliseconds
+  - `icon`: Custom notification icons (dialog-information, dialog-error, etc.)
+  - `audio_only`: Visual-only mode for headless environments
+- **Qubes OS Support**: Added detection and multiple fallback mechanisms for Qubes OS environments 🔒
+  - Automatic Qubes detection via `/proc/xen` and `qrexec-client-vm`
+  - Multiple notification fallback methods (qrexec, notify-send, log file, console)
+  - Graceful audio handling with multiple audio player attempts
+- **Linux Support**: Added mpg123 support for Linux platforms alongside existing Windows and macOS support 🐧
 - **Random Sound Option**: Set `MCP_NOTIFICATION_SOUND=random` to randomly play one of the 5 bundled sounds 🎲
 - **Bundled Sound Assets**: MP3 files now included in npm package for out-of-the-box functionality
 - **NPX Compatibility**: Full support for `npx @pinkpixel/notification-mcp` with bundled sounds
@@ -44,6 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release of Notification MCP Server
 - Basic `play_notification` tool implementation  
 - Support for custom MP3 file paths via `MCP_NOTIFICATION_SOUND_PATH`
-- Cross-platform audio playback (Windows and macOS)
+- Cross-platform audio playback (Windows, macOS, and Linux)
 - TypeScript implementation with MCP SDK
 - Basic documentation and setup instructions 
