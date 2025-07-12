@@ -10,6 +10,7 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NOTIFICATION_TEMPLATES, type NotificationTemplate } from './templates/index.js';
 
 const execAsync = promisify(exec);
 
@@ -38,9 +39,14 @@ function getRandomSound(): string {
 }
 
 // Determine which sound file to use
-function getSoundFile(): string {
+function getSoundFile(templateSound?: string): string {
   if (USER_CONFIGURED_SOUND_PATH) {
     return USER_CONFIGURED_SOUND_PATH;
+  }
+  
+  // Use template-specific sound if provided
+  if (templateSound && SOUND_FILES[templateSound as keyof typeof SOUND_FILES]) {
+    return path.join(__dirname, '..', SOUND_FILES[templateSound as keyof typeof SOUND_FILES]);
   }
   
   if (DEFAULT_SOUND_NAME === 'random') {
@@ -50,6 +56,8 @@ function getSoundFile(): string {
   const DEFAULT_SOUND_FILE = SOUND_FILES[DEFAULT_SOUND_NAME as keyof typeof SOUND_FILES] || SOUND_FILES.gentle;
   return path.join(__dirname, '..', DEFAULT_SOUND_FILE);
 }
+
+// Templates are now imported from ./templates/index.js
 
 // Function to detect if running in Qubes OS
 function isQubesOS(): boolean {
@@ -174,6 +182,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             icon: {
               type: "string",
               description: "Icon name or path for the notification (default: dialog-information)"
+            },
+            template: {
+              type: "string",
+              description: "Use a predefined notification template: success, error, warning, info, build, deploy, test, backup",
+              enum: ["success", "error", "warning", "info", "build", "deploy", "test", "backup"]
             }
           }
         }
@@ -193,18 +206,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     const args = request.params.arguments as any || {};
-    const message: string = args.message || "";
+    const template = args.template;
+    
+    // Apply template if specified
+    let templateDefaults: NotificationTemplate | {} = {};
+    if (template && NOTIFICATION_TEMPLATES[template as keyof typeof NOTIFICATION_TEMPLATES]) {
+      templateDefaults = NOTIFICATION_TEMPLATES[template as keyof typeof NOTIFICATION_TEMPLATES];
+    }
+    
+    // Extract parameters with template defaults
+    const message: string = args.message || (templateDefaults as any).message || "";
     const showVisual: boolean = args.show_visual || false;
-    const title: string = args.title || "Task Complete";
+    const title: string = args.title || (templateDefaults as any).title || "Task Complete";
     const audioOnly: boolean = args.audio_only || false;
-    const urgency: string = args.urgency || "normal";
-    const timeout: number = args.timeout || 5000;
-    const icon: string = args.icon || "dialog-information";
+    const urgency: string = args.urgency || (templateDefaults as any).urgency || "normal";
+    const timeout: number = args.timeout || (templateDefaults as any).timeout || 5000;
+    const icon: string = args.icon || (templateDefaults as any).icon || "dialog-information";
+    const templateSound: string | undefined = (templateDefaults as any).sound;
     
     // Execute audio notification (unless audio_only is true)
     if (!audioOnly) {
       try {
-        const SOUND_FILE_TO_PLAY = getSoundFile();
+        const SOUND_FILE_TO_PLAY = getSoundFile(templateSound);
         
         switch (process.platform) {
           case 'win32':
