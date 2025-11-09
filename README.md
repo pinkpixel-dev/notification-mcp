@@ -15,6 +15,10 @@
 
 </div>
 
+<a href="https://glama.ai/mcp/servers/@pinkpixel-dev/notification-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@pinkpixel-dev/notification-mcp/badge" alt="Notifications Server MCP server" />
+</a>
+
 ## Overview
 
 A Model Context Protocol server that allows AI agents to play notification sounds when tasks are completed. This TypeScript-based MCP server provides a simple, configurable notification system with **bundled sounds that work out of the box** with npx!
